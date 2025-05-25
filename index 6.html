@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Devon Balagan's Bardic Assistant</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Georgia', serif;
+      background: #fdf6e3;
+      color: #333;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 280px;
+      background: #eee8d5;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    .sidebar img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 1.2em;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+    .sidebar p, .sidebar ul {
+      margin: 5px 0;
+      font-size: 0.9em;
+    }
+    .main {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+    }
+    .main h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+    .theme-border {
+      border: 2px solid #b58900;
+      padding: 10px;
+      border-radius: 6px;
+      background: #fffaf0;
+      margin-bottom: 20px;
+    }
+    .spell-list ul {
+      list-style: square inside;
+      padding-left: 0;
+    }
+    button {
+      background: #b58900;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+    button:hover {
+      background: #cb4b16;
+    }
+    select, textarea, input {
+      font-family: inherit;
+      font-size: 1em;
+      margin-top: 5px;
+    }
+    textarea {
+      resize: vertical;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      white-space: pre-wrap;
+      border-radius: 4px;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    #notesList, #journalList {
+      list-style: decimal inside;
+      padding-left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <img src="portrait.png" alt="Devon Balagan Portrait" />
+      <h2>Devon Balagan</h2>
+      <p><strong>Bard 12 (Eloquence)</strong></p>
+      <p><strong>Race:</strong> Half-Elf</p>
+      <p><strong>HP:</strong> 87 | <strong>AC:</strong> 15</p>
+      <p><strong>Init:</strong> +4 | <strong>Speed:</strong> 30 ft</p>
+      <p><strong>Save DC:</strong> 17 | <strong>Spell Atk:</strong> +9</p>
+      <p><strong>Inspiration:</strong> <input type="checkbox"> d10</p>
+      <h2>Spells</h2>
+      <div class="spell-list">
+        <label>Select Level:</label>
+        <select id="levelSelect">
+          <option value="0">Cantrips</option>
+          <option value="1">Level 1</option>
+          <option value="2">Level 2</option>
+          <option value="3">Level 3</option>
+          <option value="4">Level 4</option>
+          <option value="5">Level 5</option>
+        </select>
+        <button onclick="filterSpells()">Show</button>
+        <div id="spells" class="theme-border"></div>
+      </div>
+    </div>
+    <div class="main">
+      <h1>🧠 Bardic Assistant & Campaign Tools</h1>
+
+      <div class="section">
+        <h2>🎲 Ask the Bardic AI</h2>
+        <input type="password" id="apiKey" placeholder="OpenAI API Key" style="width:100%; padding:8px;" />
+        <textarea id="userPrompt" placeholder="Your question..." style="width:100%; height:80px;"></textarea>
+        <button onclick="askAI()">Ask Devon</button>
+        <pre id="aiResponse"></pre>
+      </div>
+
+      <div class="section">
+        <h2>📝 Session Notes</h2>
+        <textarea id="sessionNote" placeholder="Write session notes..." style="width:100%; height:60px;"></textarea><br/>
+        <button onclick="addSessionNote()">Add Note</button>
+        <button onclick="exportSessionNotes()">Export Notes</button>
+        <ul id="notesList"></ul>
+      </div>
+
+      <div class="section">
+        <h2>📜 Memory Journal</h2>
+        <textarea id="journalEntry" placeholder="Record your memory log..." style="width:100%; height:60px;"></textarea><br/>
+        <button onclick="addJournalEntry()">Add Entry</button>
+        <button onclick="exportJournal()">Export Journal</button>
+        <ul id="journalList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const spellData = {
+      0: ["Vicious Mockery","Prestidigitation","Starry Skies","True Strike"],
+      1: ["Healing Word","Cure Wounds","Charm Person","Thunderwave","Animal Friendship (Item)","Protection from Evil and Good (Item)"],
+      2: ["Detect Thoughts","Calm Emotions","Silence [R]","Protection from Poison (Item)","Levitate (Item)","Invisibility (Item)"],
+      3: ["Mass Healing Word","Major Image","Hypnotic Pattern","Protection from Energy (Item)","Counterspell","Spirit Guardians"],
+      4: ["Dimension Door"],
+      5: ["Greater Restoration","Synaptic Static"]
+    };
+    function filterSpells() {
+      const lvl = document.getElementById("levelSelect").value;
+      const list = spellData[lvl].map(s => `<li>${s}</li>`).join('');
+      document.getElementById("spells").innerHTML = `<ul>${list}</ul>`;
+    }
+
+    // Campaign tools data
+    let sessionNotes = [];
+    let journalEntries = [];
+
+    function addSessionNote() {
+      const note = document.getElementById("sessionNote").value.trim();
+      if (!note) return;
+      sessionNotes.push(note);
+      updateList("notesList", sessionNotes);
+      document.getElementById("sessionNote").value = "";
+    }
+    function addJournalEntry() {
+      const entry = document.getElementById("journalEntry").value.trim();
+      if (!entry) return;
+      journalEntries.push(entry);
+      updateList("journalList", journalEntries);
+      document.getElementById("journalEntry").value = "";
+    }
+    function updateList(listId, items) {
+      const ul = document.getElementById(listId);
+      ul.innerHTML = items.map(item => `<li>${item}</li>`).join('');
+    }
+    function exportSessionNotes() {
+      const blob = new Blob([sessionNotes.join("\n")], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, "session_notes.txt");
+    }
+    function exportJournal() {
+      const blob = new Blob([journalEntries.join("\n")], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, "memory_journal.txt");
+    }
+    function triggerDownload(url, filename) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function askAI() {
+      const key = document.getElementById("apiKey").value.trim();
+      const prompt = document.getElementById("userPrompt").value.trim();
+      const out = document.getElementById("aiResponse");
+      if(!key||!prompt){ out.textContent="API key and prompt required."; return; }
+      out.textContent="Thinking...";
+      const context = `You are Devon Balagan, 12th-level Half-Elf Bard...`; 
+      try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "Authorization":`Bearer ${key}`
+          },
+          body:JSON.stringify({
+            model:"gpt-3.5-turbo",
+            messages:[
+              {role:"system",content:context},
+              {role:"user",content:prompt}
+            ]
+          })
+        });
+        const data = await res.json();
+        out.textContent = data.choices[0].message.content;
+      } catch(e) {
+        out.textContent="Error: "+e.message;
+      }
+    }
+  </script>
+</body>
+</html>
