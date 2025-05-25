@@ -122,7 +122,6 @@
 
       <div class="section">
         <h2>🎲 Ask the Bardic AI</h2>
-        <input type="password" id="apiKey" placeholder="OpenAI API Key" style="width:100%; padding:8px;" />
         <textarea id="userPrompt" placeholder="Your question..." style="width:100%; height:80px;"></textarea>
         <button onclick="askAI()">Ask Devon</button>
         <pre id="aiResponse"></pre>
@@ -203,34 +202,27 @@
       URL.revokeObjectURL(url);
     }
 
-    async function askAI() {
-      const key = document.getElementById("apiKey").value.trim();
-      const prompt = document.getElementById("userPrompt").value.trim();
-      const out = document.getElementById("aiResponse");
-      if(!key||!prompt){ out.textContent="API key and prompt required."; return; }
-      out.textContent="Thinking...";
-      const context = `You are Devon Balagan, 12th-level Half-Elf Bard...`; 
-      try {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-            "Authorization":`Bearer ${key}`
-          },
-          body:JSON.stringify({
-            model:"gpt-3.5-turbo",
-            messages:[
-              {role:"system",content:context},
-              {role:"user",content:prompt}
-            ]
-          })
-        });
-        const data = await res.json();
-        out.textContent = data.choices[0].message.content;
-      } catch(e) {
-        out.textContent="Error: "+e.message;
-      }
-    }
+async function askAI() {
+  const prompt = document.getElementById("userPrompt").value.trim();
+  const output = document.getElementById("aiResponse");
+  if (!prompt) {
+    output.textContent = "Please enter a question.";
+    return;
+  }
+  output.textContent = "Thinking…";
+  try {
+    const res = await fetch("/.netlify/functions/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+    const { reply } = await res.json();
+    output.textContent = reply;
+  } catch (err) {
+    output.textContent = "Error: " + err.message;
+  }
+}
+
   </script>
 </body>
 </html>
