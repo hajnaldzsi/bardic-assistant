@@ -89,6 +89,14 @@
       list-style: decimal inside;
       padding-left: 0;
     }
+   #diceRoller button {
+     margin-right: 8px;
+     margin-bottom: 6px;
+   }
+   #customRoll input {
+     margin-right: 4px;
+   }
+
   </style>
 </head>
 <body>
@@ -125,6 +133,20 @@
         <textarea id="userPrompt" placeholder="Your question..." style="width:100%; height:80px;"></textarea>
         <button onclick="askAI()">Ask Devon</button>
         <pre id="aiResponse"></pre>
+<!-- 🎲 Dice Roller -->
+  <div class="section" id="diceRoller">
+    <h2>🎲 Dice Roller</h2>
+    <button onclick="rollAttack()">Rapier Attack (+9 d20)</button>
+    <button onclick="rollDamage()">Starry Wisp Damage (3d8)</button>
+    <button onclick="rollInspiration()">Bardic Inspiration (d10)</button>
+    <button onclick="rollCustom()">Custom Roll</button>
+    <div id="diceResult" style="margin-top:12px; font-weight: bold;"></div>
+    <div id="customRoll" style="margin-top:8px;">
+      <input id="customExpr" placeholder="e.g. 2d6+3" style="width:120px;" />
+      <button onclick="doCustomRoll()">Roll</button>
+    </div>
+  </div>
+
       </div>
 
       <div class="section">
@@ -222,6 +244,43 @@ async function askAI() {
     output.textContent = "Error: " + err.message;
   }
 }
+
+// Helper: roll N dice of S sides, add modifier
+  function rollDice(n, s, mod = 0) {
+    let total = 0, rolls = [];
+    for (let i = 0; i < n; i++) {
+      const r = Math.floor(Math.random() * s) + 1;
+      rolls.push(r);
+      total += r;
+    }
+    return { total: total + mod, rolls, mod };
+  }
+  // Display result
+  function showResult(text) {
+    document.getElementById("diceResult").innerText = text;
+  }
+  // Pre-built rolls:
+  function rollAttack() {
+    const { total, rolls } = rollDice(1, 20, 9);
+    showResult(`Rapier Attack: [${rolls}] +9 = **${total}**`);
+  }
+  function rollDamage() {
+    const { total, rolls } = rollDice(3, 8);
+    showResult(`Starry Wisp Damage: [${rolls}] = **${total}**`);
+  }
+  function rollInspiration() {
+    const { total, rolls } = rollDice(1, 10);
+    showResult(`Bardic Inspiration: [${rolls}] = **${total}**`);
+  }
+  // Custom roll parser:
+  function doCustomRoll() {
+    const expr = document.getElementById("customExpr").value.trim();
+    const m = expr.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
+    if (!m) return showResult("Invalid format. Use NdM+K");
+    const n = +m[1], s = +m[2], mod = m[3] ? +m[3] : 0;
+    const { total, rolls } = rollDice(n, s, mod);
+    showResult(`Custom Roll ${expr}: [${rolls}] ${mod>=0? '+'+mod:mod} = **${total}**`);
+  }
 
   </script>
 </body>
